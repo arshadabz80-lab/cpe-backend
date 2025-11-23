@@ -6,37 +6,58 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Supabase connection
-const SUPABASE_URL = "https://xjjrqxycufaqxzjhrnyw.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqanJxeHljdWZhcXh6amhybnl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4OTUxNzIsImV4cCI6MjA3OTQ3MTE3Mn0.xNcCqTO4MeUzJNCSAVH5Zs-TQnZ7ZS4R13Sn2GM_9z8";
+// ENV variables from Render
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Default route
+// 🔵 Health Check
 app.get("/", (req, res) => {
-  res.send("CPE Backend Running with Supabase ✔");
+  res.send("CPE Backend is running successfully 🚀");
 });
 
-// Insert competitor
+// 🔵 Add Competitor
 app.post("/add-competitor", async (req, res) => {
-  const { name, url } = req.body;
+  try {
+    const { compname } = req.body;
 
-  const { data, error } = await supabase
-    .from("competitors")
-    .insert([{ name, url }]);
+    if (!compname) {
+      return res.status(400).json({ error: "compname is required" });
+    }
 
-  if (error) return res.status(400).json({ error });
-  res.json({ success: true, data });
+    const { data, error } = await supabase
+      .from("competitors")
+      .insert([{ compname }]);
+
+    if (error) return res.status(400).json({ error });
+
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Get all competitors
+// 🔵 Get Competitor List
 app.get("/competitors", async (req, res) => {
-  const { data, error } = await supabase.from("competitors").select("*");
+  try {
+    const { data, error } = await supabase
+      .from("competitors")
+      .select("*")
+      .order("id", { ascending: false });
 
-  if (error) return res.status(400).json({ error });
-  res.json(data);
+    if (error) return res.status(400).json({ error });
+
+    res.json({ data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Render-compatible server start
+// Render Port
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => cons
+
+// ✅ Fixed listen function (This was the bug earlier)
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
